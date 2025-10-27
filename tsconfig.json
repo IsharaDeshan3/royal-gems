@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",                      // Modern JS target for Node and browser
+    "lib": ["dom", "dom.iterable", "esnext"], 
+    "allowJs": true,                         // Allow JS files
+    "skipLibCheck": true,                    // Skip type checks in node_modules
+    "strict": true,                          // Enable all strict type-checking options
+    "noEmit": true,                           // Don't emit JS (Next.js handles compilation)
+    "esModuleInterop": true,                  // Enable default import interoperability for CommonJS
+    "forceConsistentCasingInFileNames": true,
+    "module": "CommonJS",                     // Node.js modules (required for ts-node)
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "plugins": [
+      { "name": "next" }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "scripts/**/*.ts",          // Include your scripts folder for ts-node
+    "lib/**/*.ts"               // Include library code
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
