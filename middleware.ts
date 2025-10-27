@@ -115,7 +115,17 @@ export async function middleware(request: NextRequest) {
   }
 
   // Get Supabase session from cookies
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  let session = null;
+  let sessionError = null;
+  
+  try {
+    const sessionResult = await supabase.auth.getSession();
+    session = sessionResult.data.session;
+    sessionError = sessionResult.error;
+  } catch (error) {
+    console.log('Middleware debug - Error getting session:', error);
+    sessionError = error;
+  }
 
   console.log('Middleware debug - Session check:', {
     hasSession: !!session,
