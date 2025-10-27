@@ -19,7 +19,7 @@ if (!supabaseUrl || !supabaseServiceKey) {
   process.exit(1);
 }
 
-const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey);
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 interface MigrationStats {
   users: { total: number; success: number; failed: number };
@@ -53,10 +53,8 @@ async function migrateUsers(mongoUsers: any[]): Promise<{ success: number; faile
         email: mongoUser.email,
         first_name: mongoUser.firstName,
         last_name: mongoUser.lastName,
-        phone: mongoUser.phone,
-        role: mongoUser.role || 'customer',
+        role: mongoUser.role || 'User',
         is_active: mongoUser.isActive !== false,
-        is_verified: mongoUser.isVerified || false,
         two_factor_enabled: mongoUser.twoFactorEnabled || false,
         two_factor_secret: mongoUser.twoFactorSecret,
         created_at: mongoUser.createdAt || new Date().toISOString(),

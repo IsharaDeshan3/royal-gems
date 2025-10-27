@@ -51,38 +51,7 @@ type User = {
 };
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: "1",
-      email: "john.doe@example.com",
-      firstName: "John",
-      lastName: "Doe",
-      role: "Admin",
-      isActive: true,
-      createdAt: "2024-01-15",
-      lastLogin: "2024-09-27",
-    },
-    {
-      id: "2",
-      email: "sarah.wilson@example.com",
-      firstName: "Sarah",
-      lastName: "Wilson",
-      role: "Moderator",
-      isActive: true,
-      createdAt: "2024-02-20",
-      lastLogin: "2024-09-26",
-    },
-    {
-      id: "3",
-      email: "mike.johnson@example.com",
-      firstName: "Mike",
-      lastName: "Johnson",
-      role: "SuperAdmin",
-      isActive: false,
-      createdAt: "2024-01-10",
-      lastLogin: "2024-09-25",
-    },
-  ]);
+  const [users, setUsers] = useState<User[]>([]);
   const [q, setQ] = useState("");
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({

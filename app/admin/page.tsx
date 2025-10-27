@@ -14,22 +14,13 @@ import {
   Eye,
 } from "lucide-react";
 
-// interface ApiAuditLog {
-//   _id: string;
-//   action: string;
-//   adminEmail: string;
-//   resource: string;
-//   timestamp: string;
-//   success: boolean;
-// }
-
 interface ActivityItem {
   id: string;
   action: string;
-  adminEmail: string;
-  resource: string;
-  timestamp: string;
-  success: boolean;
+  user_id: string;
+  entity_type: string;
+  created_at: string;
+  changes?: any;
 }
 
 interface DashboardStats {
@@ -42,58 +33,51 @@ interface DashboardStats {
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
-    users: 1247,
-    orders: 832,
-    revenue: 94750,
-    logins: 156,
-    recentActivity: [
-      {
-        id: "1",
-        action: "CREATE_USER",
-        adminEmail: "admin@example.com",
-        resource: "users",
-        timestamp: "2024-09-27 14:23:15",
-        success: true,
-      },
-      {
-        id: "2",
-        action: "UPDATE_ORDER",
-        adminEmail: "manager@example.com",
-        resource: "orders",
-        timestamp: "2024-09-27 14:18:32",
-        success: true,
-      },
-      {
-        id: "3",
-        action: "DELETE_PRODUCT",
-        adminEmail: "admin@example.com",
-        resource: "products",
-        timestamp: "2024-09-27 13:45:21",
-        success: false,
-      },
-    ],
+    users: 0,
+    orders: 0,
+    revenue: 0,
+    logins: 0,
+    recentActivity: [],
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    loadStats();
   }, []);
 
   const loadStats = async () => {
     setLoading(true);
     try {
-      // Simulate API calls with mock data
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Fetch stats from API
+      const [statsResponse, logsResponse] = await Promise.all([
+        fetch("/api/admin/stats", {
+          credentials: "include",
+        }),
+        fetch("/api/admin/logs?limit=5", {
+          credentials: "include",
+        }),
+      ]);
 
-      // In real implementation, this would fetch from APIs
-      setStats((prev) => ({
-        ...prev,
-        users: Math.floor(Math.random() * 2000) + 1000,
-        orders: Math.floor(Math.random() * 1000) + 500,
-        revenue: Math.floor(Math.random() * 50000) + 75000,
-        logins: Math.floor(Math.random() * 200) + 100,
-      }));
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        setStats((prev) => ({
+          ...prev,
+          users: statsData.users || 0,
+          orders: statsData.orders || 0,
+          revenue: statsData.revenue || 0,
+          logins: statsData.logins || 0,
+        }));
+      }
+
+      if (logsResponse.ok) {
+        const logsData = await logsResponse.json();
+        setStats((prev) => ({
+          ...prev,
+          recentActivity: logsData.logs || [],
+        }));
+      }
     } catch (error) {
       console.error("Failed to load dashboard stats:", error);
     } finally {
@@ -107,6 +91,17 @@ export default function AdminDashboard() {
       currency: "USD",
       maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   if (!mounted) {
@@ -294,33 +289,24 @@ export default function AdminDashboard() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3 flex-wrap">
                           <Badge
-                            variant={
-                              activity.success ? "default" : "destructive"
-                            }
-                            className={`text-xs px-3 py-1 rounded-full font-semibold shadow-md ${
-                              activity.success
-                                ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0"
-                                : "bg-gradient-to-r from-red-500 to-pink-500 text-white border-0"
-                            }`}
+                            className="text-xs px-3 py-1 rounded-full font-semibold shadow-md bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0"
                           >
-                            {activity.action.replace("_", " ")}
+                            {activity.action.replace(/_/g, " ")}
                           </Badge>
                           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-600 px-3 py-1 rounded-full">
-                            {activity.adminEmail}
+                            User: {activity.user_id ? activity.user_id.substring(0, 8) + "..." : "System"}
                           </span>
                           <span className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700 px-2 py-1 rounded-full">
-                            {activity.resource}
+                            {activity.entity_type}
                           </span>
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center">
                           <Clock className="h-3 w-3 mr-1" />
-                          {activity.timestamp}
+                          {formatTimestamp(activity.created_at)}
                         </p>
                       </div>
                       <div
-                        className={`w-3 h-3 rounded-full ${
-                          activity.success ? "bg-emerald-400" : "bg-red-400"
-                        } shadow-lg group-hover:scale-125 transition-transform duration-300`}
+                        className="w-3 h-3 rounded-full bg-emerald-400 shadow-lg group-hover:scale-125 transition-transform duration-300"
                       ></div>
                     </div>
                   </div>

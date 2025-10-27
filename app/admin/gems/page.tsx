@@ -288,10 +288,60 @@ export default function ProductsPage() {
       const finalImageUrl = imageUrl || form.image_url;
 
       if (editing) {
-        // Update existing product
-        setProducts((prev) =>
-          prev.map((p) => (p.id === editing.id ? { ...p, ...form, image_url: finalImageUrl } : p))
-        );
+        // Update existing product via API
+        try {
+          const csrf =
+            document.cookie
+              .split("; ")
+              .find((r) => r.startsWith("csrfToken="))
+              ?.split("=")[1] || "";
+          
+          const response = await fetch("/api/admin/gems", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "x-csrf-token": csrf,
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              id: editing.id,
+              name: form.name,
+              description: form.description,
+              price: form.price,
+              category: form.category,
+              stock_quantity: form.stock_quantity,
+              is_active: form.active,
+              images: finalImageUrl ? [finalImageUrl] : [],
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to update product");
+          }
+
+          const updatedProduct = await response.json();
+          console.log("Product updated:", updatedProduct);
+
+          // Update local state with API response
+          setProducts((prev) =>
+            prev.map((p) => 
+              p.id === editing.id 
+                ? { 
+                    ...p, 
+                    ...form, 
+                    image_url: finalImageUrl,
+                    // Ensure we update the actual ID from API if it changed
+                    id: updatedProduct.id || p.id
+                  } 
+                : p
+            )
+          );
+        } catch (error) {
+          console.error("Error updating product:", error);
+          setError("Failed to update product");
+          return; // Don't reset form on error
+        }
+        
         setEditing(null);
       } else {
         // Create new product
@@ -304,16 +354,52 @@ export default function ProductsPage() {
 
         const { id, created_at, ...rest } = newProduct;
         try {
-          const res = createProduct({
-            ...rest,
-            images: finalImageUrl ? [finalImageUrl] : [], // Convert to images array for API
+          // Call API to create product
+          const csrf =
+            document.cookie
+              .split("; ")
+              .find((r) => r.startsWith("csrfToken="))
+              ?.split("=")[1] || "";
+          
+          const response = await fetch("/api/admin/gems", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-csrf-token": csrf,
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              name: rest.name,
+              description: rest.description,
+              price: rest.price,
+              category: rest.category,
+              stock_quantity: rest.stock_quantity,
+              is_active: rest.active,
+              images: finalImageUrl ? [finalImageUrl] : [],
+            }),
           });
-          console.log("Product created", id, created_at, res);
+
+          if (!response.ok) {
+            throw new Error("Failed to create product");
+          }
+
+          const createdProduct = await response.json();
+          console.log("Product created:", createdProduct);
+
+          // Update local state with the created product from API
+          setProducts((prev) => [
+            {
+              ...newProduct,
+              id: createdProduct.id,
+            },
+            ...prev,
+          ]);
         } catch (error) {
-          console.log(error);
+          console.error("Error creating product:", error);
+          setError("Failed to create product");
+          return; // Don't reset form on error
         }
 
-        setProducts((prev) => [newProduct, ...prev]);
         setCreating(false);
       }
 
@@ -330,8 +416,32 @@ export default function ProductsPage() {
 
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Call API to delete product
+      const csrf =
+        document.cookie
+          .split("; ")
+          .find((r) => r.startsWith("csrfToken="))
+          ?.split("=")[1] || "";
+      
+      const response = await fetch(`/api/admin/gems?id=${product.id}`, {
+        method: "DELETE",
+        headers: { 
+          "x-csrf-token": csrf,
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete product");
+      }
+
+      // Update local state
       setProducts((prev) => prev.filter((p) => p.id !== product.id));
+      console.log("Product deleted successfully");
+    } catch (err) {
+      console.error("Error deleting product:", err);
+      setError("Failed to delete product");
     } finally {
       setLoading(false);
     }
@@ -340,10 +450,38 @@ export default function ProductsPage() {
   async function toggleActive(product: Product) {
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Call API to update product
+      const csrf =
+        document.cookie
+          .split("; ")
+          .find((r) => r.startsWith("csrfToken="))
+          ?.split("=")[1] || "";
+      
+      const response = await fetch("/api/admin/gems", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrf,
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          id: product.id,
+          is_active: !product.active,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update product");
+      }
+
+      // Update local state
       setProducts((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, active: !p.active } : p))
       );
+      console.log("Product updated successfully");
+    } catch (err) {
+      console.error("Error updating product:", err);
+      setError("Failed to update product");
     } finally {
       setLoading(false);
     }

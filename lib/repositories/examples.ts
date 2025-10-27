@@ -26,8 +26,8 @@ async function exampleUserOperations() {
   // Update user profile
   if (user) {
     await userRepo.updateProfile(user.id, {
-      phone: '+1234567890',
-      is_verified: true
+      first_name: 'Johnny',
+      last_name: 'Doe Jr.'
     })
   }
 

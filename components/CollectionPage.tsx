@@ -223,7 +223,7 @@ const CollectionPage = ({ products, onAddToCart }: CollectionPageProps) => {
                   transition={{ duration: 0.3 }}
                 />
 
-                <div className="relative bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+                <div className="relative bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden shadow-2xl min-h-[500px] flex flex-col">
                   {/* Enhanced shimmer overlay */}
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
@@ -307,7 +307,7 @@ const CollectionPage = ({ products, onAddToCart }: CollectionPageProps) => {
                   </div>
 
                   {/* Enhanced Product Info */}
-                  <div className="p-6 relative">
+                  <div className="p-6 relative flex-1 flex flex-col justify-between">
                     {/* Rating Stars with animation */}
                     <motion.div
                       className="flex items-center mb-3"
@@ -339,7 +339,7 @@ const CollectionPage = ({ products, onAddToCart }: CollectionPageProps) => {
                       />
                     </motion.h3>
 
-                    <p className="text-sm md:text-base text-slate-300 mb-4 line-clamp-2 leading-relaxed">
+                    <p className="text-sm md:text-base text-slate-300 mb-4 leading-relaxed">
                       {product.description}
                     </p>
 

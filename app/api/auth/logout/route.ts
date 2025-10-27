@@ -3,7 +3,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
 export async function POST(request: NextRequest) {
   try {
-    let response = NextResponse.json({ success: true });
+    const response = NextResponse.json({ success: true });
 
     // Create Supabase client with cookie handling
     const supabase = createServerClient(

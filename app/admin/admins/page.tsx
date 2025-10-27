@@ -45,35 +45,7 @@ type AdminUser = {
 };
 
 export default function AdminsPage() {
-  const [admins, setAdmins] = useState<AdminUser[]>([
-    {
-      _id: "1",
-      email: "john.admin@royalgems.com",
-      firstName: "John",
-      lastName: "Smith",
-      role: "Admin",
-      isActive: true,
-      createdAt: "2024-01-15T10:30:00Z",
-    },
-    {
-      _id: "2",
-      email: "sarah.moderator@royalgems.com",
-      firstName: "Sarah",
-      lastName: "Johnson",
-      role: "Moderator",
-      isActive: true,
-      createdAt: "2024-02-20T14:22:00Z",
-    },
-    {
-      _id: "3",
-      email: "mike.admin@royalgems.com",
-      firstName: "Mike",
-      lastName: "Wilson",
-      role: "Admin",
-      isActive: false,
-      createdAt: "2024-01-05T09:15:00Z",
-    },
-  ]);
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
@@ -94,11 +66,20 @@ export default function AdminsPage() {
   async function loadAdmins() {
     setLoading(true);
     try {
-      // Mock API call
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      // Data is already set in useState
+      const response = await fetch("/api/admin/admins", {
+        credentials: "include",
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAdmins(data.admins || []);
+      } else {
+        console.error("Failed to load admins");
+        setAdmins([]);
+      }
     } catch (err) {
       console.error("Failed to load admins:", err);
+      setAdmins([]);
     } finally {
       setLoading(false);
     }

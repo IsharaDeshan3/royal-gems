@@ -13,69 +13,45 @@ const orderRepository = getRepositoryFactory(supabase).getOrderRepository();
 // ✅ Products (Gems)
 export async function getProducts(): Promise<Product[]> {
   try {
-    const gems = await gemRepository.findAll(100, 0);
-    
-    // Map gems to Product interface
-    return gems.map(gem => ({
-      id: gem.id!,
-      name: gem.name,
-      description: gem.description || '',
-      price: gem.price,
-      image_url: gem.images?.[0] || '', // First image as primary
-      images: gem.images || [],
-      category: gem.category || 'Gemstone',
-      stock_quantity: gem.stock_quantity || 0,
-      stock: gem.stock_quantity || 0,
-      active: gem.is_active ?? true,
-      is_active: gem.is_active ?? true,
-      specifications: {
-        carat_weight: gem.carat_weight || 0,
-        color: gem.color || '',
-        clarity: gem.clarity || '',
-        cut: gem.cut || '',
-        origin: gem.origin || '',
-        certification: gem.certification || ''
+    // Use public API endpoint for fetching products
+    const response = await fetch('/api/products', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
       },
-      created_at: gem.created_at || new Date().toISOString(),
-      updated_at: gem.updated_at || new Date().toISOString()
-    }));
+      cache: 'no-store' // Don't cache to always get latest products
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.products || [];
   } catch (error) {
     console.error('Error fetching products:', error);
-    throw error;
+    // Return empty array instead of throwing to prevent page crash
+    return [];
   }
 }
 
 export async function getProductById(id: string): Promise<Product> {
   try {
-    const gem = await gemRepository.findById(id);
-    
-    if (!gem) {
+    // Use public API endpoint
+    const response = await fetch(`/api/products?id=${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
       throw new Error('Product not found');
     }
 
-    return {
-      id: gem.id!,
-      name: gem.name,
-      description: gem.description || '',
-      price: gem.price,
-      image_url: gem.images?.[0] || '',
-      images: gem.images || [],
-      category: gem.category || 'Gemstone',
-      stock_quantity: gem.stock_quantity || 0,
-      stock: gem.stock_quantity || 0,
-      active: gem.is_active ?? true,
-      is_active: gem.is_active ?? true,
-      specifications: {
-        carat_weight: gem.carat_weight || 0,
-        color: gem.color || '',
-        clarity: gem.clarity || '',
-        cut: gem.cut || '',
-        origin: gem.origin || '',
-        certification: gem.certification || ''
-      },
-      created_at: gem.created_at || new Date().toISOString(),
-      updated_at: gem.updated_at || new Date().toISOString()
-    };
+    const data = await response.json();
+    return data.product;
   } catch (error) {
     console.error('Error fetching product:', error);
     throw error;

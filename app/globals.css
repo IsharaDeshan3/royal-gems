@@ -98,31 +98,34 @@ html {
 
 body {
   font-family: var(--font-mono);
-  /* Custom scrollbar styles */
+}
+
+/* Custom scrollbar styles for main content */
+main {
   scrollbar-width: thin;
   scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
 }
 
-body::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+main::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
 
-body::-webkit-scrollbar-track {
-  background: transparent;
+main::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
 }
 
-body::-webkit-scrollbar-thumb {
+main::-webkit-scrollbar-thumb {
   background: rgba(156, 163, 175, 0.5);
-  border-radius: 4px;
+  border-radius: 5px;
   transition: background 0.3s ease;
 }
 
-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.7);
+main::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.8);
 }
 
-body::-webkit-scrollbar-corner {
+main::-webkit-scrollbar-corner {
   background: transparent;
 }
 @media (min-width: 1024px) {

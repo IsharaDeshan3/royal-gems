@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
   // Check superadmin role
   const userProfile = await userRepository.findById(authUser.id);
-  if (!userProfile || userProfile.role !== 'superadmin') {
+  if (!userProfile || userProfile.role !== 'SuperAdmin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -34,7 +34,6 @@ export async function GET(request: NextRequest) {
     last_name: admin.last_name,
     role: admin.role,
     is_active: admin.is_active,
-    is_verified: admin.is_verified,
     two_factor_enabled: admin.two_factor_enabled,
     last_login: admin.last_login,
     created_at: admin.created_at,
@@ -52,7 +51,7 @@ export async function POST(request: NextRequest) {
 
   // Check superadmin role
   const userProfile = await userRepository.findById(authUser.id);
-  if (!userProfile || userProfile.role !== 'superadmin') {
+  if (!userProfile || userProfile.role !== 'SuperAdmin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

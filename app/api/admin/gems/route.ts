@@ -126,15 +126,13 @@ export async function POST(request: NextRequest) {
     await auditLogRepository.create({
       user_id: user.id,
       action: "CREATE_GEM",
-      resource_type: "gem",
-      resource_id: newGem.id,
-      details: {
+      entity_type: "gem",
+      entity_id: newGem.id,
+      changes: {
         gemName: newGem.name,
         category: newGem.category,
         price: newGem.price,
       },
-      ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
-      user_agent: request.headers.get('user-agent') || 'unknown',
     });
 
     return NextResponse.json(newGem, { status: 201 });
@@ -235,14 +233,12 @@ export async function PUT(request: NextRequest) {
     await auditLogRepository.create({
       user_id: user.id,
       action: "UPDATE_GEM",
-      resource_type: "gem",
-      resource_id: updatedGem.id,
-      details: {
+      entity_type: "gem",
+      entity_id: updatedGem.id,
+      changes: {
         gemName: updatedGem.name,
         updatedFields: Object.keys(updateData),
       },
-      ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
-      user_agent: request.headers.get('user-agent') || 'unknown',
     });
 
     return NextResponse.json(updatedGem, { status: 200 });
@@ -299,14 +295,12 @@ export async function DELETE(request: NextRequest) {
     await auditLogRepository.create({
       user_id: user.id,
       action: "DELETE_GEM",
-      resource_type: "gem",
-      resource_id: gemId,
-      details: {
+      entity_type: "gem",
+      entity_id: gemId,
+      changes: {
         gemName: existingGem.name,
         category: existingGem.category,
       },
-      ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
-      user_agent: request.headers.get('user-agent') || 'unknown',
     });
 
     return NextResponse.json(

@@ -1,17 +1,19 @@
 "use client";
 import { useState, useEffect } from "react";
 import React from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
-import Button from "@mui/material/Button";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { ShoppingCart, Sparkles, Crown, Diamond, Star } from "lucide-react";
-import CollectionPage from "@/components/CollectionPage";
 import { CartItem, Product, Order } from "../../types";
-import Cart from "@/components/Cart";
 import { dummyProducts } from "@/lib/data";
-import Checkout from "@/components/Checkout";
 import { getProducts } from "@/utils/api";
+
+// Lazy load heavy components
+const CollectionPage = dynamic(() => import("@/components/CollectionPage"));
+const Cart = dynamic(() => import("@/components/Cart"));
+const Checkout = dynamic(() => import("@/components/Checkout"));
 
 function Page() {
   // const [searchTerm, setSearchTerm] = useState("");
@@ -74,18 +76,16 @@ function Page() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 relative overflow-hidden">
-      {/* Animated background elements */}
+      {/* Optimized background elements - Reduced animations for better performance */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        {/* Floating orbs */}
+        {/* Floating orbs - Simplified animations */}
         <motion.div
           className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-r from-amber-400/15 to-orange-500/15 rounded-full blur-3xl"
           animate={{
-            scale: [1, 1.3, 1],
-            x: [0, 60, 0],
-            y: [0, -40, 0],
+            scale: [1, 1.2, 1],
           }}
           transition={{
-            duration: 15,
+            duration: 20,
             repeat: Infinity,
             ease: "easeInOut",
           }}
@@ -93,12 +93,10 @@ function Page() {
         <motion.div
           className="absolute top-1/3 right-20 w-48 h-48 bg-gradient-to-l from-purple-400/15 to-pink-500/15 rounded-full blur-2xl"
           animate={{
-            scale: [1, 0.7, 1],
-            x: [0, -50, 0],
-            y: [0, 80, 0],
+            scale: [1, 0.8, 1],
           }}
           transition={{
-            duration: 18,
+            duration: 25,
             repeat: Infinity,
             ease: "easeInOut",
           }}
@@ -106,37 +104,32 @@ function Page() {
         <motion.div
           className="absolute bottom-20 left-1/3 w-56 h-56 bg-gradient-to-br from-cyan-300/10 to-blue-400/10 rounded-full blur-3xl"
           animate={{
-            scale: [1, 1.5, 1],
             rotate: [0, 360],
           }}
           transition={{
-            duration: 25,
+            duration: 40,
             repeat: Infinity,
             ease: "linear",
           }}
         />
 
-        {/* Fixed position particles */}
-        {[
-          8, 24, 42, 67, 85, 15, 38, 55, 72, 91, 28, 48, 63, 79, 12, 31, 58, 76,
-          89, 6,
-        ].map((left, i) => (
+        {/* Reduced number of particles from 20 to 6 for better performance */}
+        {[15, 35, 55, 75, 25, 65].map((left, i) => (
           <motion.div
             key={i}
             className="absolute w-1 h-1 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full"
             style={{
               left: `${left}%`,
-              top: `${(i * 29) % 100}%`,
+              top: `${(i * 35) % 100}%`,
             }}
             animate={{
               y: [0, -120, 0],
               opacity: [0, 1, 0],
-              scale: [0, 1, 0],
             }}
             transition={{
-              duration: (i % 3) + 4,
+              duration: 5,
               repeat: Infinity,
-              delay: (i % 5) * 0.8,
+              delay: i * 1.2,
               ease: "easeInOut",
             }}
           />
@@ -148,23 +141,25 @@ function Page() {
         <section className="max-w-[164em] mx-auto flex items-center flex-col min-h-screen py-2  snap-start relative pt-40">
           {/* Floating shopping cart */}
           <motion.div
-            className="fixed bottom-8 right-8 z-50"
+            className="fixed top-8 right-8 z-[1000]" // Adjusted position to top-right and ensured high z-index
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ delay: 1, duration: 0.6, ease: "easeOut" }}
           >
             <motion.button
               onClick={() => {
+                console.log("Cart button clicked"); // Debugging log
                 setCurrentPage("cart");
                 const section = document.getElementById(
                   "exquisite-collection-section"
                 );
+                console.log("Section found:", section); // Debugging log
                 if (section) {
                   section.scrollIntoView({ behavior: "smooth" });
                 }
               }}
-              className="relative p-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl text-white hover:bg-white/20 transition-all duration-300 shadow-2xl"
-              whileHover={{ scale: 1.05, y: -2 }}
+              className="relative p-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl text-white hover:bg-gradient-to-r hover:from-amber-400 hover:to-orange-500 transition-all duration-300 shadow-2xl"
+              whileHover={{ scale: 1.1, y: -2 }} // Enhanced hover effect
               whileTap={{ scale: 0.95 }}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-amber-400/20 to-orange-500/20 rounded-2xl blur opacity-0 hover:opacity-100 transition-opacity" />
@@ -324,27 +319,14 @@ function Page() {
                   className="relative"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl blur opacity-60" />
-                  <Button
-                    sx={{
-                      background:
-                        "linear-gradient(45deg, #6b46c1 30%, #8b5cf6 90%)",
-                      "&:hover": {
-                        background:
-                          "linear-gradient(45deg, #9f7aea 30%, #a78bfa 90%)",
-                      },
-                      fontSize: { xs: "1.2rem", md: "1.8rem" },
-                      padding: { xs: "12px 32px", md: "16px 48px" },
-                      fontWeight: 700,
-                      borderRadius: "12px",
-                      boxShadow: "0 8px 32px rgba(107, 70, 193, 0.4)",
-                      position: "relative",
-                      zIndex: 10,
-                    }}
-                    variant="contained"
-                    startIcon={<Crown />}
+                  <motion.button
+                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 px-6 md:py-4 md:px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm md:text-lg flex items-center space-x-2"
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    Own This Masterpiece
-                  </Button>
+                    <Crown className="w-5 h-5 md:w-6 md:h-6" />
+                    <span>Own This Masterpiece</span>
+                  </motion.button>
                 </motion.div>
               </motion.div>
             </motion.div>

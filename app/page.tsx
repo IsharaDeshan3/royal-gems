@@ -1,15 +1,21 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Image from "next/image";
 import { ShoppingBag, Sparkles, Crown, Diamond } from "lucide-react";
 import { motion } from "framer-motion";
 import { ExclusiveContent } from "@/components/ExclusiveCard";
-import ITemDisplayCard from "@/components/ITemDisplayCard";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+// Lazy load heavy components
+const ITemDisplayCard = dynamic(() => import("@/components/ITemDisplayCard"), {
+  ssr: true,
+  loading: () => <div className="h-64 bg-white/10 animate-pulse rounded-2xl" />,
+});
+
 function Page() {
-  const [exclusiveContent, setExclusiveContent] = useState<ExclusiveContent[]>([
+  const exclusiveContent = useMemo<ExclusiveContent[]>(() => [
     {
       id: 1,
       title: "Omnix",
@@ -28,7 +34,7 @@ function Page() {
       description: "Shiny creation",
       image: "/ring-1.png",
     },
-  ]);
+  ], []);
   const router = useRouter();
 
   const exploreBtnHandler = () => {
