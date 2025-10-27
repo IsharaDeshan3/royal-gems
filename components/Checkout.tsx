@@ -475,7 +475,7 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onOrderComplete }) => {
                         transition={{ duration: 0.2 }}
                       >
                         <img
-                          src={item.product.image_url}
+                          src={item.product.image_url || "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=100&h=100&fit=crop"}
                           alt={item.product.name}
                           className="w-16 h-16 object-cover rounded-xl shadow-lg border-2 border-white/20"
                         />

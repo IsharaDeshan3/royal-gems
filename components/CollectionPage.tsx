@@ -237,7 +237,7 @@ const CollectionPage = ({ products, onAddToCart }: CollectionPageProps) => {
                   {/* Product Image Container */}
                   <div className="relative aspect-square overflow-hidden group">
                     <img
-                      src={product.image_url}
+                      src={product.image_url || "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=300&h=300&fit=crop"}
                       alt={product.name}
                       className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 group-hover:brightness-110"
                     />

@@ -279,7 +279,7 @@ const Cart: React.FC<CartProps> = ({
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-amber-400/20 to-orange-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity" />
                     <img
-                      src={item.product.image_url}
+                      src={item.product.image_url || "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=150&h=150&fit=crop"}
                       alt={item.product.name}
                       className="w-24 h-24 md:w-28 md:h-28 object-cover rounded-2xl shadow-lg border-2 border-white/20 relative z-10"
                     />

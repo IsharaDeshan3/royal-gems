@@ -1,23 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authService } from '@/lib/auth/service';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { getRepositoryFactory } from '@/lib/repositories';
-import { supabase } from '@/lib/supabase';
 import { validatePasswordStrength } from '@/lib/security/auth';
 import { rateLimiters, getRateLimitIdentifier } from '@/lib/rate-limit';
 import { validateInput, ValidationRule } from '@/lib/validation';
 import bcrypt from 'bcryptjs';
 
-const userRepository = getRepositoryFactory(supabase).getUserRepository();
-
 export async function GET(request: NextRequest) {
-  const authUser = await authService.getCurrentUser();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value;
+        },
+        set() {},
+        remove() {},
+      },
+    }
+  );
+
+  const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Get user profile to check role
+  const userRepository = getRepositoryFactory(supabase).getUserRepository();
   const userProfile = await userRepository.findById(authUser.id);
-  if (!userProfile || !['superadmin', 'admin', 'moderator'].includes(userProfile.role)) {
+  if (!userProfile || !['SuperAdmin', 'Admin', 'Moderator', 'superadmin', 'admin', 'moderator'].includes(userProfile.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -35,7 +46,6 @@ export async function GET(request: NextRequest) {
     last_name: user.last_name,
     role: user.role,
     is_active: user.is_active,
-    is_verified: user.is_verified,
     two_factor_enabled: user.two_factor_enabled,
     last_login: user.last_login,
     created_at: user.created_at,
@@ -53,14 +63,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
   }
 
-  const authUser = await authService.getCurrentUser();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value;
+        },
+        set() {},
+        remove() {},
+      },
+    }
+  );
+
+  const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check admin role
+  const userRepository = getRepositoryFactory(supabase).getUserRepository();
   const userProfile = await userRepository.findById(authUser.id);
-  if (!userProfile || !['superadmin', 'admin'].includes(userProfile.role)) {
+  if (!userProfile || !['SuperAdmin', 'Admin', 'superadmin', 'admin'].includes(userProfile.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -166,14 +190,28 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const authUser = await authService.getCurrentUser();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value;
+        },
+        set() {},
+        remove() {},
+      },
+    }
+  );
+
+  const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check admin role
+  const userRepository = getRepositoryFactory(supabase).getUserRepository();
   const userProfile = await userRepository.findById(authUser.id);
-  if (!userProfile || !['superadmin', 'admin'].includes(userProfile.role)) {
+  if (!userProfile || !['SuperAdmin', 'Admin', 'superadmin', 'admin'].includes(userProfile.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -239,14 +277,28 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const authUser = await authService.getCurrentUser();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value;
+        },
+        set() {},
+        remove() {},
+      },
+    }
+  );
+
+  const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check admin role
+  const userRepository = getRepositoryFactory(supabase).getUserRepository();
   const userProfile = await userRepository.findById(authUser.id);
-  if (!userProfile || !['superadmin', 'admin'].includes(userProfile.role)) {
+  if (!userProfile || !['SuperAdmin', 'Admin', 'superadmin', 'admin'].includes(userProfile.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

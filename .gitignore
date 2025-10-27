@@ -54,15 +54,6 @@ Thumbs.db
 logs/
 *.log
 
-# admin scripts (sensitive - should not be committed)
-scripts/create-admin.ts
-scripts/create-superadmin.ts
-scripts/*.ts
-
-# uploads (if storing locally)
-uploads/
-public/uploads/
-
 # database
 *.db
 *.sqlite

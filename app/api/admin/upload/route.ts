@@ -1,56 +1,114 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { authService } from '@/lib/auth/service';
-import { getRepositoryFactory } from '@/lib/repositories';
-import { supabase } from '@/lib/supabase';
-import path from 'path';
-import fs from 'fs';
-import { generateSecureFilename, validateFileSize, validateFileType } from '@/lib/security/auth';
-
-export const runtime = 'nodejs';
-
-const uploadDir = process.env.UPLOAD_DIR || './uploads';
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const userRepository = getRepositoryFactory(supabase).getUserRepository();
+import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedUser, isAdminRole } from "@/lib/auth/middleware-helper";
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
-  const authUser = await authService.getCurrentUser();
-  if (!authUser) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Check admin role
-  const userProfile = await userRepository.findById(authUser.id);
-  if (!userProfile || !['superadmin', 'admin', 'moderator'].includes(userProfile.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  // TODO: Add CSRF verification
-  // if (!verifyCSRF(request)) return NextResponse.json({ error: 'CSRF' }, { status: 403 });
-
   try {
-    const form = await request.formData();
-    const file = form.get('file') as unknown as File | null;
-    if (!file) return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    console.log('Upload request received');
 
-    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validateFileType(file.type, allowed)) {
-      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
+    const { user, supabase, error } = await getAuthenticatedUser(request);
+    if (error || !user || !isAdminRole(user.role)) {
+      console.log('Authentication failed:', { error, user: user?.id, role: user?.role });
+      return NextResponse.json(
+        { error: error || "Forbidden - Admin access required" },
+        { status: error ? 401 : 403 }
+      );
     }
 
-    const max = Number(process.env.MAX_FILE_SIZE || 5 * 1024 * 1024);
-    if (!validateFileSize(file.size, max)) {
-      return NextResponse.json({ error: 'File too large' }, { status: 400 });
+    console.log('User authenticated:', user.id, user.role);
+
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+
+    if (!file) {
+      console.log('No file provided in form data');
+      return NextResponse.json(
+        { error: "No file provided" },
+        { status: 400 }
+      );
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const filename = generateSecureFilename(file.name);
-    const fullPath = path.join(uploadDir, filename);
-    fs.writeFileSync(fullPath, buffer);
+    console.log('File received:', { name: file.name, size: file.size, type: file.type });
 
-    return NextResponse.json({ success: true, path: path.relative(process.cwd(), fullPath) });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Upload failed' }, { status: 400 });
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      console.log('Invalid file type:', file.type);
+      return NextResponse.json(
+        { error: "Only image files are allowed" },
+        { status: 400 }
+      );
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      console.log('File too large:', file.size, 'max:', maxSize);
+      return NextResponse.json(
+        { error: "File size must be less than 5MB" },
+        { status: 400 }
+      );
+    }
+
+    // Generate unique filename with proper extension
+    const fileName = file.name || 'upload';
+    const fileExt = fileName.includes('.') ? fileName.split('.').pop() : 'jpg'; // Default to jpg if no extension
+    const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `gems/${uniqueFileName}`;
+
+    console.log('Uploading to Supabase:', { filePath, bucket: 'gems-images' });
+
+    // Use service role client for storage operations (bypasses RLS)
+    const serviceSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    // Convert file to buffer if needed
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+
+    // Upload to Supabase Storage using service role
+    const { data, error: uploadError } = await serviceSupabase.storage
+      .from('gems-images')
+      .upload(filePath, fileBuffer, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type
+      });
+
+    if (uploadError) {
+      console.error('Supabase upload error:', uploadError);
+      return NextResponse.json(
+        { error: `Failed to upload image: ${uploadError.message}` },
+        { status: 500 }
+      );
+    }
+
+    console.log('Upload successful:', data);
+
+    // Get public URL using service client
+    const { data: { publicUrl } } = serviceSupabase.storage
+      .from('gems-images')
+      .getPublicUrl(filePath);
+
+    console.log('Public URL generated:', publicUrl);
+
+    return NextResponse.json({
+      url: publicUrl,
+      path: filePath
+    }, { status: 200 });
+
+  } catch (error: any) {
+    console.error("Unexpected error in upload:", error);
+    console.error("Error stack:", error.stack);
+    return NextResponse.json(
+      { error: error.message || "Failed to upload file" },
+      { status: 500 }
+    );
   }
 }

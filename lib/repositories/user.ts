@@ -5,16 +5,18 @@ import { Database } from '@/types/supabase'
 export interface User {
   id: string
   email: string
-  password_hash: string
-  first_name?: string
-  last_name?: string
-  phone?: string
-  role: 'superadmin' | 'admin' | 'moderator' | 'user'
+  password: string
+  first_name: string
+  last_name: string
+  role: 'SuperAdmin' | 'Admin' | 'Moderator' | 'User'
   is_active: boolean
-  is_verified: boolean
-  two_factor_enabled: boolean
   two_factor_secret?: string
+  two_factor_enabled: boolean
+  password_reset_token?: string
+  password_reset_expires?: string
   last_login?: string
+  login_attempts: number
+  lock_until?: string
   created_at: string
   updated_at: string
 }
@@ -31,8 +33,6 @@ export interface UserRepository extends BaseRepository<User> {
   enableTwoFactor(id: string, secret: string): Promise<User | null>
   disableTwoFactor(id: string): Promise<User | null>
   updateTwoFactorSecret(id: string, secret: string): Promise<User | null>
-  verifyUser(id: string): Promise<User | null>
-  unverifyUser(id: string): Promise<User | null>
 }
 
 export class UserRepositoryImpl extends BaseRepositoryImpl<User> implements UserRepository {
@@ -75,7 +75,7 @@ export class UserRepositoryImpl extends BaseRepositoryImpl<User> implements User
     const { data, error } = await (this.supabase as any)
       .from('users')
       .update({
-        password_hash: passwordHash,
+        password: passwordHash,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
@@ -239,48 +239,6 @@ export class UserRepositoryImpl extends BaseRepositoryImpl<User> implements User
       .from('users')
       .update({
         two_factor_secret: secret,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return null // Not found
-      }
-      throw error
-    }
-
-    return data as User
-  }
-
-  async verifyUser(id: string): Promise<User | null> {
-    const { data, error } = await (this.supabase as any)
-      .from('users')
-      .update({
-        is_verified: true,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return null // Not found
-      }
-      throw error
-    }
-
-    return data as User
-  }
-
-  async unverifyUser(id: string): Promise<User | null> {
-    const { data, error } = await (this.supabase as any)
-      .from('users')
-      .update({
-        is_verified: false,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)

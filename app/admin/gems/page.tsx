@@ -135,6 +135,8 @@ export default function ProductsPage() {
     stock_quantity: 0,
     active: true,
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -223,6 +225,7 @@ export default function ProductsPage() {
       stock_quantity: 0,
       active: true,
     });
+    setSelectedFile(null);
     setError(null);
   }
 
@@ -237,7 +240,27 @@ export default function ProductsPage() {
       stock_quantity: product.stock_quantity,
       active: product.active,
     });
+    setSelectedFile(null);
     setCreating(false);
+  }
+
+  async function uploadImage(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/admin/upload', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to upload image');
+    }
+
+    const data = await response.json();
+    return data.url;
   }
 
   async function saveProduct() {
@@ -245,12 +268,29 @@ export default function ProductsPage() {
     setLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      let imageUrl = form.image_url;
+
+      // If a file is selected, upload it first
+      if (selectedFile) {
+        setUploading(true);
+        try {
+          imageUrl = await uploadImage(selectedFile);
+        } catch (uploadError: any) {
+          setError(`Image upload failed: ${uploadError.message}`);
+          setUploading(false);
+          setLoading(false);
+          return;
+        }
+        setUploading(false);
+      }
+
+      // Use either uploaded image URL or provided URL
+      const finalImageUrl = imageUrl || form.image_url;
 
       if (editing) {
         // Update existing product
         setProducts((prev) =>
-          prev.map((p) => (p.id === editing.id ? { ...p, ...form } : p))
+          prev.map((p) => (p.id === editing.id ? { ...p, ...form, image_url: finalImageUrl } : p))
         );
         setEditing(null);
       } else {
@@ -258,12 +298,16 @@ export default function ProductsPage() {
         const newProduct: Product = {
           id: "RGP-" + Date.now().toString(),
           ...form,
+          image_url: finalImageUrl,
           created_at: new Date().toISOString(),
         };
 
         const { id, created_at, ...rest } = newProduct;
         try {
-          const res = createProduct(rest);
+          const res = createProduct({
+            ...rest,
+            images: finalImageUrl ? [finalImageUrl] : [], // Convert to images array for API
+          });
           console.log("Product created", id, created_at, res);
         } catch (error) {
           console.log(error);
@@ -561,16 +605,85 @@ export default function ProductsPage() {
               <div className="space-y-3 md:col-span-2">
                 <Label className="flex items-center text-sm font-semibold text-slate-700 dark:text-slate-300">
                   <ImageIcon className="h-4 w-4 mr-2" />
-                  Image URL
+                  Product Image
                 </Label>
-                <Input
-                  value={form.image_url}
-                  onChange={(e) =>
-                    setForm({ ...form, image_url: e.target.value })
-                  }
-                  className="h-12 bg-white/60 dark:bg-slate-700/60 border-slate-200 dark:border-slate-600 rounded-xl"
-                  placeholder="https://example.com/sapphire.jpg"
-                />
+
+                {/* File Upload */}
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setSelectedFile(file);
+                          setForm({ ...form, image_url: "" }); // Clear URL when file is selected
+                        }
+                      }}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <label
+                      htmlFor="image-upload"
+                      className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl cursor-pointer hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
+                    >
+                      <ImageIcon className="h-4 w-4 mr-2" />
+                      Choose Image
+                    </label>
+                    {selectedFile && (
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        {selectedFile.name}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Image Preview */}
+                  {(selectedFile || form.image_url) && (
+                    <div className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                      <img
+                        src={selectedFile ? URL.createObjectURL(selectedFile) : form.image_url}
+                        alt="Preview"
+                        className="w-16 h-16 object-cover rounded-lg border border-slate-200 dark:border-slate-600"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          Image Preview
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {selectedFile ? `${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)` : "URL Image"}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedFile(null);
+                          setForm({ ...form, image_url: "" });
+                        }}
+                        className="text-red-500 hover:text-red-700 p-1"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+
+                  {/* URL Input as Alternative */}
+                  <div className="text-center text-slate-500 dark:text-slate-400 text-sm mb-2">
+                    — OR —
+                  </div>
+                  <Input
+                    value={form.image_url}
+                    onChange={(e) => {
+                      setForm({ ...form, image_url: e.target.value });
+                      if (e.target.value) setSelectedFile(null); // Clear file when URL is entered
+                    }}
+                    className="h-12 bg-white/60 dark:bg-slate-700/60 border-slate-200 dark:border-slate-600 rounded-xl"
+                    placeholder="https://example.com/sapphire.jpg"
+                    disabled={!!selectedFile}
+                  />
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Enter an image URL or upload a file above
+                  </p>
+                </div>
               </div>
 
               <div className="flex items-center space-x-3 md:col-span-2">
@@ -605,15 +718,25 @@ export default function ProductsPage() {
                 </Button>
                 <Button
                   onClick={saveProduct}
-                  disabled={loading}
+                  disabled={loading || uploading}
                   className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 shadow-lg px-6"
                 >
-                  {loading ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  {uploading ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : loading ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
                   ) : (
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      {editing ? "Update Product" : "Create Product"}
+                    </>
                   )}
-                  {editing ? "Update Product" : "Create Product"}
                 </Button>
               </div>
             </div>
@@ -708,7 +831,7 @@ export default function ProductsPage() {
             {/* Product Image */}
             <div className="relative h-48 overflow-hidden">
               <img
-                src={product.image_url}
+                src={product.image_url || "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=300&h=300&fit=crop"}
                 alt={product.name}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                 onError={(e) => {

@@ -1,13 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authService } from "@/lib/auth";
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { getRepositoryFactory } from "@/lib/repositories";
 
 export async function GET(request: NextRequest) {
   try {
-    // Get current user from Supabase Auth
-    const user = await authService.getCurrentUser();
+    // Create Supabase client with cookie handling
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            // Not needed for GET request
+          },
+          remove(name: string, options: CookieOptions) {
+            // Not needed for GET request
+          },
+        },
+      }
+    );
 
-    if (!user) {
+    // Get current user from Supabase Auth
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -26,10 +45,8 @@ export async function GET(request: NextRequest) {
         email: userProfile.email,
         firstName: userProfile.first_name,
         lastName: userProfile.last_name,
-        phone: userProfile.phone,
         role: userProfile.role,
         isActive: userProfile.is_active,
-        isVerified: userProfile.is_verified,
         twoFactorEnabled: userProfile.two_factor_enabled,
         lastLogin: userProfile.last_login,
         createdAt: userProfile.created_at,
@@ -47,14 +64,33 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    // Get current user from Supabase Auth
-    const user = await authService.getCurrentUser();
+    // Create Supabase client with cookie handling
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            // Not needed for PUT request
+          },
+          remove(name: string, options: CookieOptions) {
+            // Not needed for PUT request
+          },
+        },
+      }
+    );
 
-    if (!user) {
+    // Get current user from Supabase Auth
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { firstName, lastName, phone } = await request.json();
+    const { firstName, lastName } = await request.json();
 
     // Update user profile
     const repositories = getRepositoryFactory();
@@ -63,7 +99,6 @@ export async function PUT(request: NextRequest) {
     const updatedUser = await userRepo.updateProfile(user.id, {
       first_name: firstName,
       last_name: lastName,
-      phone: phone,
     });
 
     if (!updatedUser) {
@@ -76,10 +111,8 @@ export async function PUT(request: NextRequest) {
         email: updatedUser.email,
         firstName: updatedUser.first_name,
         lastName: updatedUser.last_name,
-        phone: updatedUser.phone,
         role: updatedUser.role,
         isActive: updatedUser.is_active,
-        isVerified: updatedUser.is_verified,
         twoFactorEnabled: updatedUser.two_factor_enabled,
         updatedAt: updatedUser.updated_at,
       },

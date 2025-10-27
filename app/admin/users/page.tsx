@@ -37,12 +37,17 @@ type User = {
   id: string;
   _id?: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  firstName?: string;
+  lastName?: string;
+  first_name?: string;
+  last_name?: string;
   role: string;
   isActive: boolean;
+  is_active?: boolean;
   createdAt?: string;
+  created_at?: string;
   lastLogin?: string;
+  last_login?: string;
 };
 
 export default function UsersPage() {
@@ -103,7 +108,16 @@ export default function UsersPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setUsers(data.users);
+        // Map API response to component format
+        const mappedUsers = data.users.map((user: any) => ({
+          ...user,
+          firstName: user.first_name || user.firstName,
+          lastName: user.last_name || user.lastName,
+          isActive: user.is_active !== undefined ? user.is_active : user.isActive,
+          createdAt: user.created_at || user.createdAt,
+          lastLogin: user.last_login || user.lastLogin,
+        }));
+        setUsers(mappedUsers);
       } else {
         setError(data.error || "Failed to load users");
       }
@@ -226,8 +240,10 @@ export default function UsersPage() {
   }
 
   async function remove(u: User) {
+    const firstName = u.firstName || u.first_name || 'Unknown';
+    const lastName = u.lastName || u.last_name || 'User';
     if (
-      !confirm(`Are you sure you want to delete ${u.firstName} ${u.lastName}?`)
+      !confirm(`Are you sure you want to delete ${firstName} ${lastName}?`)
     )
       return;
 
@@ -296,7 +312,7 @@ export default function UsersPage() {
   const filteredUsers = users.filter(
     (user) =>
       user.email.toLowerCase().includes(q.toLowerCase()) ||
-      `${user.firstName} ${user.lastName}`
+      `${user.firstName || user.first_name || ''} ${user.lastName || user.last_name || ''}`
         .toLowerCase()
         .includes(q.toLowerCase())
   );
@@ -533,12 +549,12 @@ export default function UsersPage() {
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                    {user.firstName.charAt(0)}
-                    {user.lastName.charAt(0)}
+                    {(user.firstName || user.first_name || 'U').charAt(0)}
+                    {(user.lastName || user.last_name || '').charAt(0)}
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-800 dark:text-white">
-                      {user.firstName} {user.lastName}
+                      {user.firstName || user.first_name || 'Unknown'} {user.lastName || user.last_name || 'User'}
                     </h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center">
                       <Mail className="h-3 w-3 mr-1" />

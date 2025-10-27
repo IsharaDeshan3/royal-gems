@@ -1,34 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authService } from "@/lib/auth/service";
+import { getAuthenticatedUser, isAdminRole, isHighAdminRole } from "@/lib/auth/middleware-helper";
 import { getRepositoryFactory } from "@/lib/repositories";
-import { supabase } from "@/lib/supabase";
 import { rateLimiters, getRateLimitIdentifier } from "@/lib/rate-limit";
 import { validateInput, ValidationRule } from "@/lib/validation";
-
-const gemRepository = getRepositoryFactory(supabase).getGemRepository();
-const auditLogRepository = getRepositoryFactory(supabase).getAuditLogRepository();
-const userRepository = getRepositoryFactory(supabase).getUserRepository();
 
 // GET /api/admin/gems - Get all gems
 export async function GET(request: NextRequest) {
   try {
-    // Check admin authentication
-    const authUser = await authService.getCurrentUser();
-    if (!authUser) {
+    const { user, supabase, error } = await getAuthenticatedUser(request);
+    if (error || !user || !isAdminRole(user.role)) {
       return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
+        { error: error || "Forbidden - Admin access required" },
+        { status: error ? 401 : 403 }
       );
     }
 
-    // Get user profile to check role
-    const userProfile = await userRepository.findById(authUser.id);
-    if (!userProfile || !['superadmin', 'admin', 'moderator'].includes(userProfile.role)) {
-      return NextResponse.json(
-        { error: "Forbidden - Admin access required" },
-        { status: 403 }
-      );
-    }
+    const gemRepository = getRepositoryFactory(supabase).getGemRepository();
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -84,23 +71,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check admin authentication
-    const authUser = await authService.getCurrentUser();
-    if (!authUser) {
+    const { user, supabase, error } = await getAuthenticatedUser(request);
+    if (error || !user || !isHighAdminRole(user.role)) {
       return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
+        { error: error || "Forbidden - Admin access required" },
+        { status: error ? 401 : 403 }
       );
     }
 
-    // Get user profile to check role
-    const userProfile = await userRepository.findById(authUser.id);
-    if (!userProfile || !['superadmin', 'admin'].includes(userProfile.role)) {
-      return NextResponse.json(
-        { error: "Forbidden - Admin access required" },
-        { status: 403 }
-      );
-    }
+    const gemRepository = getRepositoryFactory(supabase).getGemRepository();
+    const auditLogRepository = getRepositoryFactory(supabase).getAuditLogRepository();
 
     const body = await request.json();
 
@@ -144,7 +124,7 @@ export async function POST(request: NextRequest) {
 
     // Log the action
     await auditLogRepository.create({
-      user_id: authUser.id,
+      user_id: user.id,
       action: "CREATE_GEM",
       resource_type: "gem",
       resource_id: newGem.id,
@@ -170,23 +150,16 @@ export async function POST(request: NextRequest) {
 // PUT /api/admin/gems - Update gem
 export async function PUT(request: NextRequest) {
   try {
-    // Check admin authentication
-    const authUser = await authService.getCurrentUser();
-    if (!authUser) {
+    const { user, supabase, error } = await getAuthenticatedUser(request);
+    if (error || !user || !isHighAdminRole(user.role)) {
       return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
+        { error: error || "Forbidden - Admin access required" },
+        { status: error ? 401 : 403 }
       );
     }
 
-    // Get user profile to check role
-    const userProfile = await userRepository.findById(authUser.id);
-    if (!userProfile || !['superadmin', 'admin'].includes(userProfile.role)) {
-      return NextResponse.json(
-        { error: "Forbidden - Admin access required" },
-        { status: 403 }
-      );
-    }
+    const gemRepository = getRepositoryFactory(supabase).getGemRepository();
+    const auditLogRepository = getRepositoryFactory(supabase).getAuditLogRepository();
 
     const body = await request.json();
 
@@ -260,7 +233,7 @@ export async function PUT(request: NextRequest) {
 
     // Log the action
     await auditLogRepository.create({
-      user_id: authUser.id,
+      user_id: user.id,
       action: "UPDATE_GEM",
       resource_type: "gem",
       resource_id: updatedGem.id,
@@ -285,23 +258,16 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/admin/gems - Delete gem
 export async function DELETE(request: NextRequest) {
   try {
-    // Check admin authentication
-    const authUser = await authService.getCurrentUser();
-    if (!authUser) {
+    const { user, supabase, error } = await getAuthenticatedUser(request);
+    if (error || !user || !isHighAdminRole(user.role)) {
       return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
+        { error: error || "Forbidden - Admin access required" },
+        { status: error ? 401 : 403 }
       );
     }
 
-    // Get user profile to check role
-    const userProfile = await userRepository.findById(authUser.id);
-    if (!userProfile || !['superadmin', 'admin'].includes(userProfile.role)) {
-      return NextResponse.json(
-        { error: "Forbidden - Admin access required" },
-        { status: 403 }
-      );
-    }
+    const gemRepository = getRepositoryFactory(supabase).getGemRepository();
+    const auditLogRepository = getRepositoryFactory(supabase).getAuditLogRepository();
 
     const searchParams = request.nextUrl.searchParams;
     const gemId = searchParams.get("id");
@@ -331,7 +297,7 @@ export async function DELETE(request: NextRequest) {
 
     // Log the action
     await auditLogRepository.create({
-      user_id: authUser.id,
+      user_id: user.id,
       action: "DELETE_GEM",
       resource_type: "gem",
       resource_id: gemId,

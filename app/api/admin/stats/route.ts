@@ -1,22 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authService } from "@/lib/auth/service";
-import { getRepositoryFactory } from "@/lib/repositories";
-import { supabase } from "@/lib/supabase";
-
-const userRepository = getRepositoryFactory(supabase).getUserRepository();
-const orderRepository = getRepositoryFactory(supabase).getOrderRepository();
-const auditLogRepository = getRepositoryFactory(supabase).getAuditLogRepository();
+import { getAuthenticatedUser, isAdminRole } from "@/lib/auth/middleware-helper";
 
 export async function GET(request: NextRequest) {
-  const authUser = await authService.getCurrentUser();
-  if (!authUser) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Check if user has admin role
-  const userProfile = await userRepository.findById(authUser.id);
-  if (!userProfile || !['superadmin', 'admin', 'moderator'].includes(userProfile.role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const { user, supabase, error } = await getAuthenticatedUser(request);
+  if (error || !user || !isAdminRole(user.role)) {
+    return NextResponse.json(
+      { error: error || "Forbidden" },
+      { status: error ? 401 : 403 }
+    );
   }
 
   try {

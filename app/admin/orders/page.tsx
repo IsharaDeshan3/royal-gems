@@ -498,7 +498,7 @@ export default function OrdersPage() {
                             className="flex items-center space-x-3 bg-white/40 dark:bg-slate-600/40 rounded-lg p-2"
                           >
                             <img
-                              src={product?.image_url}
+                              src={product?.image_url || "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=50&h=50&fit=crop"}
                               alt={product?.name || "Product"}
                               className="w-8 h-8 rounded object-cover"
                               onError={(e) => {
@@ -762,7 +762,7 @@ export default function OrdersPage() {
                         className="flex items-center space-x-4 bg-white/40 dark:bg-slate-600/40 rounded-lg p-4"
                       >
                         <img
-                          src={item.products?.image_url}
+                          src={item.products?.image_url || "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=100&h=100&fit=crop"}
                           alt={item.products?.name}
                           className="w-16 h-16 rounded-lg object-cover shadow-md"
                           onError={(e) => {

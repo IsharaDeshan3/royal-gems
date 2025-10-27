@@ -81,27 +81,45 @@ export class AuthService {
    */
   async signIn(data: SignInData): Promise<AuthResponse> {
     try {
+      console.log('AuthService - Attempting signIn for:', data.email);
+      
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password
       })
 
+      console.log('AuthService - Supabase response:', {
+        hasData: !!authData,
+        hasUser: !!authData?.user,
+        hasSession: !!authData?.session,
+        error: error
+      });
+
       if (error) {
+        console.log('AuthService - Supabase error details:', error);
         return { user: null, session: null, error: error.message }
       }
 
-      // Update last login
+      // Update last login - don't fail auth if this fails
       if (authData.user) {
-        const userRepo = this.repositories.getUserRepository()
-        await userRepo.updateLastLogin(authData.user.id)
+        try {
+          const userRepo = this.repositories.getUserRepository()
+          await userRepo.updateLastLogin(authData.user.id)
+          console.log('AuthService - Updated last login');
+        } catch (loginUpdateError) {
+          console.warn('AuthService - Failed to update last login:', loginUpdateError);
+          // Don't fail the login just because we couldn't update last_login
+        }
       }
 
+      console.log('AuthService - Sign in successful');
       return {
         user: authData.user,
         session: authData.session,
         error: undefined
       }
     } catch (error) {
+      console.log('AuthService - Catch block error:', error);
       return {
         user: null,
         session: null,

@@ -125,7 +125,7 @@ const AboutPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 overflow-y-auto">
       {/* Animated Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         {Array.from({ length: 30 }).map((_, i) => {
