@@ -5,11 +5,23 @@ export interface Product {
   name: string;
   description: string;
   price: number;
-  image_url: string;
+  image_url: string; // Primary image URL
+  images?: string[]; // Additional images
   category: string;
   stock_quantity: number;
+  stock?: number; // Alias for stock_quantity
   active: boolean;
+  is_active?: boolean; // Alias for active
+  specifications?: {
+    carat_weight?: number;
+    color?: string;
+    clarity?: string;
+    cut?: string;
+    origin?: string;
+    certification?: string;
+  };
   created_at: string;
+  updated_at?: string;
 }
 
 export interface CartItem {
@@ -33,18 +45,24 @@ export interface OrderItem {
   product_id: string;
   quantity: number;
   price: number;
-  products: Product;
+  products?: Product; // Optional since it may not always be populated
 }
 
 export interface Order {
   _id?: string;
   orderId: string;
+  user_id?: string; // User who placed the order
   total_amount: number;
   status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
   billing_details: BillingDetails;
   payment_status: "pending" | "completed" | "failed";
   payment_id?: string;
+  payment_method?: string;
   order_items?: OrderItem[];
+  tracking_number?: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export type CheckoutRequest = {
