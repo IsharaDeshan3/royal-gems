@@ -14,7 +14,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 type User = {
-  _id: string;
+  _id?: string;
+  id?: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -174,7 +175,7 @@ export default function SettingsPage() {
                 </thead>
                 <tbody>
                   {users.map((user) => (
-                    <tr key={user._id} className="border-b">
+                    <tr key={user._id || user.id || user.email} className="border-b">
                       <td className="py-2">
                         <div>
                           <div className="font-medium">
@@ -213,7 +214,7 @@ export default function SettingsPage() {
                       <td>
                         <Select
                           defaultValue={user.role}
-                          onValueChange={(v) => updateUserRole(user._id, v)}
+                          onValueChange={(v) => updateUserRole(user._id || user.id || '', v)}
                           disabled={user.email === "admin@royalgems.com"}
                         >
                           <SelectTrigger className="w-[140px]">
