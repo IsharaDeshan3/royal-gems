@@ -103,11 +103,18 @@ export default function UsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [q, users]);
+  }, [q]);
 
   useEffect(() => {
-    if (mounted) load();
-  }, [load, mounted]);
+    if (!mounted) return;
+    
+    // Debounce the load function using setTimeout
+    const timeoutId = setTimeout(() => {
+      load();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [q, mounted, load]);
 
   async function createUser(e: React.FormEvent) {
     setError(null);
