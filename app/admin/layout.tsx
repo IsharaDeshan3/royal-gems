@@ -25,18 +25,17 @@ interface User {
   role: string;
 }
 
-// Mock navigation for demonstration
-const mockNavigation = [
-  { name: "Dashboard", href: "/admin", icon: LayoutDashboard, active: true },
-  { name: "Users", href: "/admin/users", icon: Users, active: false },
-  { name: "Gems", href: "/admin/gems", icon: Gem, active: false },
-  { name: "Orders", href: "/admin/orders", icon: ShoppingCart, active: false },
-  { name: "Logs", href: "/admin/logs", icon: FileText, active: false },
+// Navigation items
+const navigationItems = [
+  { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+  { name: "Users", href: "/admin/users", icon: Users },
+  { name: "Gems", href: "/admin/gems", icon: Gem },
+  { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
+  { name: "Logs", href: "/admin/logs", icon: FileText },
   {
     name: "Settings",
     href: "/admin/settings",
     icon: Settings,
-    active: false,
     superAdminOnly: true,
   },
 ];
@@ -284,12 +283,15 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">
                   Navigation
                 </p>
-                {mockNavigation.map((item, index) => {
+                {navigationItems.map((item, index) => {
                   if (item.superAdminOnly && user?.role !== "SuperAdmin") {
                     return null;
                   }
 
                   const Icon = item.icon;
+                  const isActive = pathname === item.href || 
+                    (item.href !== "/admin" && pathname.startsWith(item.href));
+                  
                   return (
                     <a
                       key={item.name}
@@ -297,7 +299,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                       className={`
                         group relative flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300
                         ${
-                          item.active
+                          isActive
                             ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg transform scale-105"
                             : "text-slate-700 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-slate-700/60 hover:text-slate-900 dark:hover:text-white hover:shadow-md hover:scale-105"
                         }
@@ -311,18 +313,18 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     >
                       <Icon
                         className={`h-5 w-5 mr-3 ${
-                          item.active
+                          isActive
                             ? "text-white"
                             : "text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300"
                         }`}
                       />
                       {item.name}
-                      {item.active && (
+                      {isActive && (
                         <ChevronRight className="h-4 w-4 ml-auto text-white/70" />
                       )}
 
                       {/* Active indicator */}
-                      {item.active && (
+                      {isActive && (
                         <div className="absolute right-2 w-2 h-2 bg-white/50 rounded-full animate-pulse"></div>
                       )}
                     </a>
