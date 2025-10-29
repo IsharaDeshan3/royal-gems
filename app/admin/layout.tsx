@@ -6,7 +6,6 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
-  Shield,
   Gem,
   ShoppingCart,
   FileText,
