@@ -29,13 +29,6 @@ interface User {
 const mockNavigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard, active: true },
   { name: "Users", href: "/admin/users", icon: Users, active: false },
-  {
-    name: "Admins",
-    href: "/admin/admins",
-    icon: Shield,
-    active: false,
-    superAdminOnly: true,
-  },
   { name: "Gems", href: "/admin/gems", icon: Gem, active: false },
   { name: "Orders", href: "/admin/orders", icon: ShoppingCart, active: false },
   { name: "Logs", href: "/admin/logs", icon: FileText, active: false },
