@@ -41,7 +41,7 @@ const navigationItems = [
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start with loading as true
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
@@ -144,6 +144,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </div>
       </div>
     );
+  }
+
+  // Don't render dashboard if user is not authenticated
+  if (!user) {
+    return null;
   }
 
   // For authenticated users, show full layout with sidebar
