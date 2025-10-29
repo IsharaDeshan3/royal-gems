@@ -53,6 +53,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }, []);
 
   const checkAuth = useCallback(async () => {
+    setLoading(true); // Ensure loading state is set to true at the start
     try {
       const res = await fetch("/api/auth/profile", { credentials: "include" });
       if (res.ok) {
@@ -68,7 +69,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     } catch {
       setUser(null);
     } finally {
-      setLoading(false);
+      setLoading(false); // Ensure loading state is reset at the end
     }
   }, [pathname, router]);
   useEffect(() => {
