@@ -1,5 +1,5 @@
 "use client";
-import { ReactNode, useEffect, useState, useCallback } from "react";
+import { ReactNode, useEffect, useState, useCallback, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRouter, usePathname } from "next/navigation";
@@ -17,6 +17,9 @@ import {
   Sparkles,
   ChevronRight,
 } from "lucide-react";
+
+// Session timeout in milliseconds (1 minute = 60000ms)
+const SESSION_TIMEOUT_MS = 60 * 1000;
 
 interface User {
   firstName: string;
@@ -46,41 +49,19 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isLoggingOut = useRef(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const checkAuth = useCallback(async () => {
-    setLoading(true); // Ensure loading state is set to true at the start
-    try {
-      const res = await fetch("/api/auth/profile", { credentials: "include" });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-      } else {
-        setUser(null);
-        // If not on login page and not authenticated, redirect to login
-        if (pathname !== "/admin/login") {
-          router.push("/admin/login?reason=unauthenticated");
-        }
-      }
-    } catch {
-      setUser(null);
-    } finally {
-      setLoading(false); // Ensure loading state is reset at the end
-    }
-  }, [pathname, router]);
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-
-  async function handleLogout() {
-    setLoading(true);
+  // Function to handle logout
+  const performLogout = useCallback(async (reason: string = 'session_expired') => {
+    if (isLoggingOut.current) return;
+    isLoggingOut.current = true;
+    
     const csrfToken = document.cookie
       .split("; ")
       .find((row) => row.startsWith("csrfToken="))
       ?.split("=")[1];
+    
     try {
       await fetch("/api/auth/logout", {
         method: "POST",
@@ -90,12 +71,113 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         },
         credentials: "include",
       });
-      setUser(null);
-      setLoading(false);
-      router.push("/admin/login");
     } catch (error) {
-      console.error("Logout failed:", error);
+      console.error("Logout error:", error);
     }
+    
+    // Clear session marker
+    sessionStorage.removeItem('adminSessionActive');
+    setUser(null);
+    isLoggingOut.current = false;
+    router.push(`/admin/login?reason=${reason}`);
+  }, [router]);
+
+  // Reset inactivity timer
+  const resetInactivityTimer = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    // Update last activity time
+    sessionStorage.setItem('lastActivity', Date.now().toString());
+    
+    // Set new timeout for 1 minute
+    timeoutRef.current = setTimeout(() => {
+      if (user && pathname !== "/admin/login") {
+        performLogout('session_timeout');
+      }
+    }, SESSION_TIMEOUT_MS);
+  }, [user, pathname, performLogout]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Set up activity listeners for inactivity timeout
+  useEffect(() => {
+    if (!user || pathname === "/admin/login") return;
+
+    // Mark session as active in sessionStorage (cleared on tab close)
+    sessionStorage.setItem('adminSessionActive', 'true');
+    
+    const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    
+    // Reset timer on any activity
+    const handleActivity = () => resetInactivityTimer();
+    
+    events.forEach(event => {
+      document.addEventListener(event, handleActivity, { passive: true });
+    });
+    
+    // Start the initial timer
+    resetInactivityTimer();
+    
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handleActivity);
+      });
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [user, pathname, resetInactivityTimer]);
+
+  const checkAuth = useCallback(async () => {
+    // Skip auth check on login page
+    if (pathname === "/admin/login") {
+      setLoading(false);
+      return;
+    }
+    
+    // First check if we have a session marker (tab wasn't closed)
+    const sessionActive = sessionStorage.getItem('adminSessionActive');
+    
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/profile", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+        // Mark session as active when authenticated
+        sessionStorage.setItem('adminSessionActive', 'true');
+        sessionStorage.setItem('lastActivity', Date.now().toString());
+      } else {
+        setUser(null);
+        sessionStorage.removeItem('adminSessionActive');
+        // Determine the reason for redirect
+        // If session marker existed but auth failed, session expired server-side
+        // If no session marker, tab was closed or fresh visit
+        const reason = sessionActive ? 'session_expired' : 'unauthenticated';
+        router.replace(`/admin/login?reason=${reason}`);
+      }
+    } catch {
+      setUser(null);
+      sessionStorage.removeItem('adminSessionActive');
+      router.replace("/admin/login?reason=unauthenticated");
+    } finally {
+      setLoading(false);
+    }
+  }, [pathname, router]);
+  
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  // Use the shared logout function for manual logout
+  async function handleLogout() {
+    setLoading(true);
+    await performLogout('logged_out');
+    setLoading(false);
   }
 
   if (!mounted) {

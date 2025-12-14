@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user profile from our database
-    const repositories = getRepositoryFactory();
+    const repositories = getRepositoryFactory(supabase);
     const userRepo = repositories.getUserRepository();
     const userProfile = await userRepo.findById(user.id);
 
@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest) {
     const { firstName, lastName } = await request.json();
 
     // Update user profile
-    const repositories = getRepositoryFactory();
+    const repositories = getRepositoryFactory(supabase);
     const userRepo = repositories.getUserRepository();
 
     const updatedUser = await userRepo.updateProfile(user.id, {

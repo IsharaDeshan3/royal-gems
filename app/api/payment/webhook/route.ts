@@ -4,17 +4,32 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { getRepositoryFactory } from '@/lib/repositories';
-import { supabase } from '@/lib/supabase';
 import { verifyPayhereSignature } from '@/lib/payhere/hash';
 import { mapPayhereStatus } from '@/lib/payhere/config';
 
-const paymentRepository = getRepositoryFactory(supabase).getPaymentRepository();
-const orderRepository = getRepositoryFactory(supabase).getOrderRepository();
-const auditLogRepository = getRepositoryFactory(supabase).getAuditLogRepository();
-
 export async function POST(request: NextRequest) {
   let webhookLogId: string | undefined;
+
+  // Create Supabase client for webhook processing (server-side, no user context)
+  // Webhooks come from PayHere servers, not authenticated users
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
+
+  // Create repositories with the supabase client
+  const repositories = getRepositoryFactory(supabase);
+  const paymentRepository = repositories.getPaymentRepository();
+  const orderRepository = repositories.getOrderRepository();
+  const auditLogRepository = repositories.getAuditLogRepository();
 
   try {
     // Parse form data from PayHere
@@ -24,8 +39,6 @@ export async function POST(request: NextRequest) {
     formData.forEach((value, key) => {
       payload[key] = value;
     });
-
-    console.log('📥 PayHere webhook received:', payload);
 
     // Extract headers for logging
     const headers: any = {};
