@@ -33,7 +33,10 @@ export interface TwoFactorData {
 }
 
 export class AuthService {
-  private repositories = getRepositoryFactory(supabase)
+  // Get fresh repository instance per operation using the static supabase client
+  private getRepositories() {
+    return getRepositoryFactory(supabase)
+  }
 
   /**
    * Sign up a new user with Supabase Auth
@@ -81,45 +84,32 @@ export class AuthService {
    */
   async signIn(data: SignInData): Promise<AuthResponse> {
     try {
-      console.log('AuthService - Attempting signIn for:', data.email);
-      
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password
       })
 
-      console.log('AuthService - Supabase response:', {
-        hasData: !!authData,
-        hasUser: !!authData?.user,
-        hasSession: !!authData?.session,
-        error: error
-      });
-
       if (error) {
-        console.log('AuthService - Supabase error details:', error);
         return { user: null, session: null, error: error.message }
       }
 
       // Update last login - don't fail auth if this fails
       if (authData.user) {
         try {
-          const userRepo = this.repositories.getUserRepository()
+          const userRepo = this.getRepositories().getUserRepository()
           await userRepo.updateLastLogin(authData.user.id)
-          console.log('AuthService - Updated last login');
         } catch (loginUpdateError) {
-          console.warn('AuthService - Failed to update last login:', loginUpdateError);
+          console.warn('Failed to update last login:', loginUpdateError);
           // Don't fail the login just because we couldn't update last_login
         }
       }
 
-      console.log('AuthService - Sign in successful');
       return {
         user: authData.user,
         session: authData.session,
         error: undefined
       }
     } catch (error) {
-      console.log('AuthService - Catch block error:', error);
       return {
         user: null,
         session: null,
@@ -245,7 +235,7 @@ export class AuthService {
         return { error: 'No authenticated user' }
       }
 
-      const userRepo = this.repositories.getUserRepository()
+      const userRepo = this.getRepositories().getUserRepository()
       const secret = this.generateTOTPSecret()
 
       await userRepo.enableTwoFactor(user.id, secret)
@@ -270,7 +260,7 @@ export class AuthService {
         return { error: 'No authenticated user' }
       }
 
-      const userRepo = this.repositories.getUserRepository()
+      const userRepo = this.getRepositories().getUserRepository()
       const userProfile = await userRepo.findById(user.id)
 
       if (!userProfile || !userProfile.two_factor_secret) {
@@ -299,7 +289,7 @@ export class AuthService {
         return { error: 'No authenticated user' }
       }
 
-      const userRepo = this.repositories.getUserRepository()
+      const userRepo = this.getRepositories().getUserRepository()
       await userRepo.disableTwoFactor(user.id)
 
       return {}
@@ -351,7 +341,7 @@ export class AuthService {
    */
   private async createUserProfile(authUser: any, signupData: SignUpData) {
     try {
-      const userRepo = this.repositories.getUserRepository()
+      const userRepo = this.getRepositories().getUserRepository()
 
       await userRepo.create({
         id: authUser.id,

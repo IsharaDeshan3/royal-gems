@@ -131,6 +131,7 @@ export default function AdminLoginPage() {
   const [twoFactorToken, setTwoFactorToken] = useState("");
   const [requires2FA, setRequires2FA] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -139,17 +140,33 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     setMounted(true);
+    // Clear any stale session data when arriving at login page
     const reason = params.get("reason");
+    
+    // Only clear session storage if explicitly logged out or session ended
+    if (reason && reason !== "logged_out") {
+      // Keep session storage to show proper messages
+    }
+    
     if (reason === "session_expired")
       setError("Your session expired. Please log in again.");
-    if (reason === "unauthenticated") setError("Please log in to continue.");
-    if (reason === "token_invalid")
+    else if (reason === "session_timeout")
+      setError("You were logged out due to inactivity. Please log in again.");
+    else if (reason === "session_closed")
+      setError("Your session ended. Please log in again.");
+    else if (reason === "unauthenticated") 
+      setError("Please log in to continue.");
+    else if (reason === "token_invalid")
       setError("Your session is invalid. Please log in.");
-  }, []);
+    else if (reason === "logged_out") {
+      setError(null); // User intentionally logged out, no error needed
+    }
+  }, [params]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setSuccess(false);
     setLoading(true);
     try {
       const csrfToken = document.cookie
@@ -163,6 +180,7 @@ export default function AdminLoginPage() {
           "Content-Type": "application/json",
           "x-csrf-token": csrfToken || "",
         },
+        credentials: "include",
         body: JSON.stringify({
           email,
           password,
@@ -172,19 +190,29 @@ export default function AdminLoginPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        router.push("/admin");
+        // Show success state
+        setSuccess(true);
+        // Set session marker BEFORE redirect to prevent race condition in layout
+        sessionStorage.setItem('adminSessionActive', 'true');
+        sessionStorage.setItem('lastActivity', Date.now().toString());
+        // Small delay to show success message, then redirect
+        setTimeout(() => {
+          router.replace("/admin");
+        }, 500);
         return;
       }
       if (data.requires2FA) {
         setRequires2FA(true);
-        setError("Enter your 2FA code to continue.");
+        setError(null); // Clear error, show 2FA prompt instead
       } else {
         setError(data.error || "Login failed.");
       }
     } catch {
       setError("Unexpected error. Please try again.");
     } finally {
-      setLoading(false);
+      if (!success) {
+        setLoading(false);
+      }
     }
   }
 
@@ -351,8 +379,21 @@ export default function AdminLoginPage() {
                 </div>
               )}
 
+              {/* Success Message */}
+              {success && (
+                <div
+                  className="bg-emerald-500/20 border border-emerald-400/30 rounded-xl p-4"
+                  style={{ animation: "slideDown 0.3s ease-out" }}
+                >
+                  <p className="text-emerald-200 text-sm flex items-center">
+                    <CheckCircle2 className="h-4 w-4 mr-2 flex-shrink-0 animate-pulse" />
+                    Login successful! Redirecting to dashboard...
+                  </p>
+                </div>
+              )}
+
               {/* Error Message */}
-              {error && (
+              {error && !success && (
                 <div
                   className="bg-red-500/20 border border-red-400/30 rounded-xl p-4"
                   style={{ animation: "shake 0.5s ease-in-out" }}
@@ -365,7 +406,7 @@ export default function AdminLoginPage() {
               )}
 
               {/* Success Hint for 2FA */}
-              {requires2FA && !error && (
+              {requires2FA && !error && !success && (
                 <div className="bg-emerald-500/20 border border-emerald-400/30 rounded-xl p-4">
                   <p className="text-emerald-200 text-sm flex items-center">
                     <CheckCircle2 className="h-4 w-4 mr-2 flex-shrink-0" />
@@ -378,13 +419,13 @@ export default function AdminLoginPage() {
               {/* Submit Button */}
               <Button
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={loading || success}
                 className="w-full h-12 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                {loading ? (
+                {loading || success ? (
                   <div className="flex items-center justify-center">
                     <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-                    Signing in...
+                    {success ? "Redirecting..." : "Signing in..."}
                   </div>
                 ) : (
                   <div className="flex items-center justify-center">

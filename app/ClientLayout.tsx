@@ -15,6 +15,7 @@ export default function ClientLayout({
     <>
       {!isAdminRoute && <Navbar />}
       {children}
+      {!isAdminRoute && <Footer />}
     </>
   );
 }

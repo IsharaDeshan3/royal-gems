@@ -64,21 +64,20 @@ export class RepositoryFactoryImpl implements RepositoryFactory {
   }
 }
 
-// Singleton instance for the application
-let repositoryFactoryInstance: RepositoryFactory | null = null
-
-export function getRepositoryFactory(supabase?: SupabaseClient<Database>): RepositoryFactory {
-  if (!repositoryFactoryInstance) {
-    if (!supabase) {
-      throw new Error('Supabase client is required for the first repository factory initialization')
-    }
-    repositoryFactoryInstance = new RepositoryFactoryImpl(supabase)
+/**
+ * Creates a new RepositoryFactory instance.
+ * 
+ * IMPORTANT: In serverless/edge environments, each request should create its own
+ * factory with the request-specific Supabase client to ensure proper RLS context.
+ * 
+ * @param supabase - The Supabase client for this request context
+ * @returns A new RepositoryFactory instance
+ */
+export function getRepositoryFactory(supabase: SupabaseClient<Database>): RepositoryFactory {
+  if (!supabase) {
+    throw new Error('Supabase client is required for repository factory')
   }
-  return repositoryFactoryInstance
-}
-
-export function resetRepositoryFactory(): void {
-  repositoryFactoryInstance = null
+  return new RepositoryFactoryImpl(supabase)
 }
 
 // Export types for convenience

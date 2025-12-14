@@ -38,20 +38,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Sign in with Supabase Auth
-    console.log('Login debug - Attempting sign in for:', email);
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
-    console.log('Login debug - Auth response:', {
-      hasUser: !!authData?.user,
-      hasSession: !!authData?.session,
-      error: authError
-    });
-
     if (authError || !authData.session) {
-      console.log('Login debug - Auth error:', authError);
       return NextResponse.json(
         { error: authError?.message || 'Authentication failed' },
         { status: 401 }
@@ -65,21 +57,16 @@ export async function POST(request: NextRequest) {
       const repositories = getRepositoryFactory(supabase);
       const userRepo = repositories.getUserRepository();
       await userRepo.updateLastLogin(user.id);
-      console.log('Login debug - Updated last login');
     } catch (loginUpdateError) {
-      console.warn('Login debug - Failed to update last login:', loginUpdateError);
+      console.warn('Failed to update last login:', loginUpdateError);
     }
 
-    // Get user profile from our database
-    const repositories = getRepositoryFactory();
+    // Get user profile from our database (reuse same supabase client)
+    const repositories = getRepositoryFactory(supabase);
     const userRepo = repositories.getUserRepository();
     const userProfile = await userRepo.findById(user.id);
 
-    console.log('Login debug - User ID:', user.id);
-    console.log('Login debug - User Profile:', userProfile);
-
     if (!userProfile) {
-      console.log('Login debug - User profile not found');
       return NextResponse.json(
         { error: "User profile not found" },
         { status: 404 }
@@ -88,7 +75,6 @@ export async function POST(request: NextRequest) {
 
     // Check if user is active
     if (!userProfile.is_active) {
-      console.log('Login debug - User not active');
       return NextResponse.json(
         { error: "Account is deactivated" },
         { status: 403 }
@@ -96,10 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check role-based access (admin panel requirement)
-    console.log('Login debug - User role:', userProfile.role);
-    console.log('Login debug - Is admin?', isAdmin(userProfile.role));
     if (!isAdmin(userProfile.role)) {
-      console.log('Login debug - Access denied due to role');
       return NextResponse.json(
         { error: "Access denied. Insufficient privileges." },
         { status: 403 }
@@ -157,8 +140,6 @@ export async function POST(request: NextRequest) {
       sameSite: 'strict',
       path: '/',
     });
-
-    console.log('Login debug - Response prepared with cookies');
 
     return response;
   } catch (error) {

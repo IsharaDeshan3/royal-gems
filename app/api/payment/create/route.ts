@@ -4,9 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { getRepositoryFactory } from '@/lib/repositories';
-import { supabase } from '@/lib/supabase';
-import { authService } from '@/lib/auth/service';
 import { rateLimiters, getRateLimitIdentifier } from '@/lib/rate-limit';
 import { validateInput, ValidationRule } from '@/lib/validation';
 import { 
@@ -15,9 +14,6 @@ import {
   validatePaymentData 
 } from '@/lib/payhere/hash';
 import { payhereConfig, getPayhereUrl } from '@/lib/payhere/config';
-
-const paymentRepository = getRepositoryFactory(supabase).getPaymentRepository();
-const auditLogRepository = getRepositoryFactory(supabase).getAuditLogRepository();
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,8 +28,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Create per-request Supabase client
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value;
+          },
+          set() {},
+          remove() {},
+        },
+      }
+    );
+
     // Get current user (optional - can create payments for guests)
-    const authUser = await authService.getCurrentUser();
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    
+    // Create repositories with per-request client
+    const repositories = getRepositoryFactory(supabase);
+    const paymentRepository = repositories.getPaymentRepository();
+    const auditLogRepository = repositories.getAuditLogRepository();
     
     const body = await request.json();
 
